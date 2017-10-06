@@ -122,10 +122,16 @@ function onMouseDown(event) {
     console.log("movePoint: " + movePoint);
     console.log("moveLine: " + moveLine);
     
+    var snapPoint = event.point
+    snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
+    snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
+
+    console.log(snapPoint)
+
     if (setupAxis) {
-    	axisStartPoint = event.point;
-    	axisEndPoint = event.point
-    	
+        axisStartPoint = snapPoint;
+    	axisEndPoint = snapPoint
+
     	axisLine3Draw.segments[0].point = axisStartPoint;
     	axisLine3Draw.segments[1].point = axisEndPoint;
     	
@@ -228,20 +234,29 @@ function onMouseDown(event) {
     }
 }
 
-function onMouseDrag(event) {
-    if (setupAxis) {
+function onMouseDrag(event)
+{
+    var snapPoint = event.point
+    snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
+    snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
+
+    if (setupAxis)
+    {
         //straightLine.segments[0].point = startPoint;
-        axisEndPoint = event.point;
+        //axisEndPoint = event.point;
+        axisEndPoint = snapPoint;
         
         //axisLine3 = ComputeLine3(axisStartPoint, axisEndPoint)
         //DrawLine3(axisLine3, axisLine3Draw)
     
-        if ((axisStartPoint - axisEndPoint).length > 20) {
+        if ((axisStartPoint - axisEndPoint).length > 20)
+        {
             axisLabel.point = (axisEndPoint + axisStartPoint) / 2.0
             axisLabel.rotation = (axisEndPoint - axisStartPoint).angle
             axisLabel.point += (new Point(-5, -7)).rotate(axisLabel.rotation)
         }
-        else {
+        else
+        {
             axisLabel.point = new Point(-100, -100)
         }
         
@@ -297,9 +312,17 @@ function onMouseDrag(event) {
 }
 
 function onMouseUp(event) {
+    var snapPoint = event.point
+    snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
+    snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
+
+    console.log(event.point)
+    console.log(snapPoint)
+
     if (setupAxis) {
+        
         //straightLine.segments[0].point = startPoint;
-        axisEndPoint = event.point;
+        axisEndPoint = snapPoint
         
         if (axisEndPoint == axisStartPoint) {
             axisEndPoint.x += 10
@@ -644,12 +667,12 @@ function DrawGrid()
     {
         var gridLine = new Path.Line(new Point(x, 0), new Point(x, h));
         gridLine.strokeColor = 'powderblue';    
-        gridLine.strokeWidth = 0.5;
+        gridLine.strokeWidth = 1.0;
     }
     for (y = 10; y < h; y += 30)
     {
         var gridLine = new Path.Line(new Point(0, y), new Point(w, y));
         gridLine.strokeColor = 'powderblue';    
-        gridLine.strokeWidth = 0.5;
+        gridLine.strokeWidth = 1.0;
     }
 }
