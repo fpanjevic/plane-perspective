@@ -2,8 +2,6 @@
 //var myBall = new Path.Circle(new Point(70, 70), 50);
 //myBall.fillColor = 'tomato';
  
-//console.log("started")
-
 // The Path.Rectangle constructor can take a Point and a Size object
 //var point = new Point(20, 150);
 //var size = new Size(100, 50);
