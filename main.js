@@ -46,10 +46,12 @@ console.log(w);
 console.log(h);
 
 // draw grid
-//if (drawGrid) 
-{
-    DrawGrid();
-}
+var gridLines = [];
+var GRID_OPACITY = 0.6
+DrawGrid();
+var gridEnabled = false
+var snapToGridEnabled = false
+ShowGrid(gridEnabled);
 
 console.log("1.1");
 
@@ -126,11 +128,19 @@ function onMouseDown(event) {
     snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
     snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
 
-    console.log(snapPoint)
+    var mousePoint;
+    if (snapToGridEnabled)
+    {
+        mousePoint = snapPoint
+    }
+    else
+    {
+        mousePoint = event.point
+    }
 
     if (setupAxis) {
-        axisStartPoint = snapPoint;
-    	axisEndPoint = snapPoint
+        axisStartPoint = mousePoint;
+    	axisEndPoint = mousePoint
 
     	axisLine3Draw.segments[0].point = axisStartPoint;
     	axisLine3Draw.segments[1].point = axisEndPoint;
@@ -151,7 +161,7 @@ function onMouseDown(event) {
     }
     else if (setupVanishing)
     {
-        vanishingLine3 = ParallelToLine3AndContainsPointHom(axisLine3, [event.point.x, event.point.y, 1])
+        vanishingLine3 = ParallelToLine3AndContainsPointHom(axisLine3, [mousePoint.x, mousePoint.y, 1])
         DrawLine3(vanishingLine3, vanishingLine3Draw);
         
         vanishingLine3Draw.strokeColor = 'tomato';
@@ -164,8 +174,8 @@ function onMouseDown(event) {
         vanishingLabel.point += (new Point(-5, -7)).rotate(vanishingLabel.rotation)
     }
     else if (addLine) {
-        newLineStartPoint = event.point;
-    	newLineEndPoint = event.point
+        newLineStartPoint = mousePoint;
+    	newLineEndPoint = mousePoint;
     	
     	var newLine3Draw = new Path.Line(newLineStartPoint, newLineEndPoint)
     	newLine3Draw.strokeColor = 'tomato';
@@ -173,8 +183,8 @@ function onMouseDown(event) {
     }
     else if (addSegment) {
         //console.log("add segment mouse down")
-        newSegmentStartPoint = event.point;
-    	newSegmentEndPoint = event.point
+        newSegmentStartPoint = mousePoint;
+    	newSegmentEndPoint = mousePoint;
     	
     	var newSegment3Draw = new Path.Line(newSegmentStartPoint, newSegmentEndPoint)
     	newSegment3Draw.strokeColor = 'purple';
@@ -240,11 +250,21 @@ function onMouseDrag(event)
     snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
     snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
 
+    var mousePoint;
+    if (snapToGridEnabled)
+    {
+        mousePoint = snapPoint
+    }
+    else
+    {
+        mousePoint = event.point
+    }
+
     if (setupAxis)
     {
         //straightLine.segments[0].point = startPoint;
         //axisEndPoint = event.point;
-        axisEndPoint = snapPoint;
+        axisEndPoint = mousePoint;
         
         //axisLine3 = ComputeLine3(axisStartPoint, axisEndPoint)
         //DrawLine3(axisLine3, axisLine3Draw)
@@ -264,16 +284,16 @@ function onMouseDrag(event)
         axisLine3Draw.segments[1].point = axisEndPoint;
     }
     else if (setupCenter) {
-        centerPointHom[0] = event.point.x
-        centerPointHom[1] = event.point.y
+        centerPointHom[0] = mousePoint.x
+        centerPointHom[1] = mousePoint.y
         
-        centerPointDraw.position.x = event.point.x
-        centerPointDraw.position.y = event.point.y
+        centerPointDraw.position.x = mousePoint.x
+        centerPointDraw.position.y = mousePoint.y
         
         centerLabel.point = centerPointDraw.position + new Point(0, -7)
     }
     else if (setupVanishing) {
-        vanishingLine3 = ParallelToLine3AndContainsPointHom(axisLine3, [event.point.x, event.point.y, 1])
+        vanishingLine3 = ParallelToLine3AndContainsPointHom(axisLine3, [mousePoint.x, mousePoint.y, 1])
         DrawLine3(vanishingLine3, vanishingLine3Draw);
         
         vanishingLine3Draw.strokeColor = 'tomato';
@@ -281,22 +301,22 @@ function onMouseDrag(event)
         //vanishingLine3Draw.dashArray = [10, 12];
         vanishingLine3Draw.dashArray = [1]
         
-        vanishingLabel.point = event.point
+        vanishingLabel.point = mousePoint
         vanishingLabel.rotation = axisLabel.rotation
         vanishingLabel.point += (new Point(-5, -7)).rotate(vanishingLabel.rotation)
     }
     else if (addLine) {
-        newLineEndPoint = event.point
+        newLineEndPoint = mousePoint
         lines[lines.length - 1].segments[0].point = newLineStartPoint;
         lines[lines.length - 1].segments[1].point = newLineEndPoint;
     }
     else if (addSegment) {
-        newSegmentEndPoint = event.point
+        newSegmentEndPoint = mousePoint
         segments[segments.length - 1].segments[0].point = newSegmentStartPoint;
         segments[segments.length - 1].segments[1].point = newSegmentEndPoint;
     }
     else if (movePoint && movingPoint != -1) {
-        var pointHom = ClosestPointHomOnLine(vanishingLine3, event.point)
+        var pointHom = ClosestPointHomOnLine(vanishingLine3, mousePoint)
         vanishingPoints[movingPoint].position.x = pointHom[0] / pointHom[2]
         vanishingPoints[movingPoint].position.y = pointHom[1] / pointHom[2]
         ComputeLinesFromPoints()
@@ -304,7 +324,7 @@ function onMouseDrag(event)
     else if (moveLine && movingLine != -1) {
         // compute line3 from line3
         var line3 = Line3FromLineDraw(lines[movingLine])
-        var newLine3 = ParallelToLine3AndContainsPointHom(line3, Hom(event.point))
+        var newLine3 = ParallelToLine3AndContainsPointHom(line3, Hom(mousePoint))
 
         DrawLine3(newLine3, lines[movingLine])
         ComputePointsFromLines()
@@ -316,8 +336,15 @@ function onMouseUp(event) {
     snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
     snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
 
-    console.log(event.point)
-    console.log(snapPoint)
+    var mousePoint;
+    if (snapToGridEnabled)
+    {
+        mousePoint = snapPoint
+    }
+    else
+    {
+        mousePoint = event.point
+    }
 
     if (setupAxis) {
         
@@ -343,11 +370,11 @@ function onMouseUp(event) {
         setupCenter = true
     }
     else if (setupCenter) {
-        centerPointHom[0] = event.point.x
-        centerPointHom[1] = event.point.y
+        centerPointHom[0] = mousePoint.x
+        centerPointHom[1] = mousePoint.y
         
-        centerPointDraw.position.x = event.point.x
-        centerPointDraw.position.y = event.point.y
+        centerPointDraw.position.x = mousePoint.x
+        centerPointDraw.position.y = mousePoint.y
         
         centerPointDraw.fillColor = 'tomato'
         
@@ -357,7 +384,7 @@ function onMouseUp(event) {
         setupVanishing = true
     }
     else if (setupVanishing) {
-        vanishingLine3 = ParallelToLine3AndContainsPointHom(axisLine3, [event.point.x, event.point.y, 1])
+        vanishingLine3 = ParallelToLine3AndContainsPointHom(axisLine3, [mousePoint.x, mousePoint.y, 1])
         //console.log(vanishingLine3)
         DrawLine3(vanishingLine3, vanishingLine3Draw);
         
@@ -365,7 +392,7 @@ function onMouseUp(event) {
         vanishingLine3Draw.strokeWidth = 1
         vanishingLine3Draw.dashArray = [1];
 
-        vanishingLabel.point = event.point
+        vanishingLabel.point = mousePoint
         vanishingLabel.rotation = axisLabel.rotation
         vanishingLabel.point += (new Point(-5, -7)).rotate(vanishingLabel.rotation)
         
@@ -374,7 +401,7 @@ function onMouseUp(event) {
         addLine = false
     }
     else if (addLine) {
-        newLineEndPoint = event.point
+        newLineEndPoint = mousePoint
         var ln = Line3ContainsPoints(newLineStartPoint, newLineEndPoint)
         DrawLine3(ln, lines[lines.length - 1]);
         
@@ -401,7 +428,7 @@ function onMouseUp(event) {
         //movePoint = true
     }
     else if (addSegment) {
-        newSegmentEndPoint = event.point
+        newSegmentEndPoint = mousePoint
         segments[segments.length - 1].segments[1].point = newSegmentEndPoint;
         
         var p1 = ProjectPoint(newSegmentStartPoint)
@@ -416,7 +443,7 @@ function onMouseUp(event) {
         addSegment = false
     }
     else if (movePoint && movingPoint != -1) {
-        var pointHom = ClosestPointHomOnLine(vanishingLine3, event.point)
+        var pointHom = ClosestPointHomOnLine(vanishingLine3, mousePoint)
         vanishingPoints[movingPoint].position.x = pointHom[0] / pointHom[2]
         vanishingPoints[movingPoint].position.y = pointHom[1] / pointHom[2]
         ComputeLinesFromPoints()
@@ -457,6 +484,27 @@ function onKeyDown(event) {
 	}
     else if (event.key == 'c') {
         cloneLine = true
+    }
+    else if (event.key == 'g')
+    {
+        if (!gridEnabled)
+        {
+            gridEnabled = true;
+        }
+        else if (gridEnabled)
+        {
+            if (!snapToGridEnabled)
+            {
+                snapToGridEnabled = true
+            }
+            else
+            {
+                snapToGridEnabled = false
+                gridEnabled = false
+            }
+        }
+
+        ShowGrid(gridEnabled)
     }
 }
 
@@ -641,7 +689,8 @@ function ComputeLinesFromPoints() {
 }
 
 function ComputePointsFromLines() {
-    for (i = 0; i < lines.length; i++) {
+    for (i = 0; i < lines.length; i++)
+    {
         // compute line3 from lineDraw
         var p = Line3FromLineDraw(lines[i])
         
@@ -668,11 +717,28 @@ function DrawGrid()
         var gridLine = new Path.Line(new Point(x, 0), new Point(x, h));
         gridLine.strokeColor = 'powderblue';    
         gridLine.strokeWidth = 1.0;
+        gridLines.push(gridLine);
     }
     for (y = 10; y < h; y += 30)
     {
         var gridLine = new Path.Line(new Point(0, y), new Point(w, y));
         gridLine.strokeColor = 'powderblue';    
         gridLine.strokeWidth = 1.0;
+        gridLines.push(gridLine);
+    }
+}
+
+function ShowGrid(showGrid)
+{
+    for (var i = 0; i < gridLines.length; i++)
+    {
+        if (showGrid)
+        {
+            gridLines[i].opacity = GRID_OPACITY
+        }
+        else
+        {
+            gridLines[i].opacity = 0.0;
+        }
     }
 }
