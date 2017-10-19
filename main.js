@@ -329,7 +329,8 @@ function onMouseDrag(event)
     }
 }
 
-function onMouseUp(event) {
+function onMouseUp(event)
+{
     var snapPoint = event.point
     snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
     snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
@@ -344,16 +345,18 @@ function onMouseUp(event) {
         mousePoint = event.point
     }
 
-    if (setupAxis) {
-        
+    if (setupAxis) 
+    {
         //straightLine.segments[0].point = startPoint;
-        axisEndPoint = snapPoint
+        axisEndPoint = mousePoint
         
-        if (axisEndPoint == axisStartPoint) {
+        if (axisEndPoint == axisStartPoint)
+        {
             axisEndPoint.x += 10
         }
         
         axisLine3 = Line3ContainsPoints(axisStartPoint, axisEndPoint)
+        //console.log("setupaxis up: " + axisLine3)
         DrawLine3(axisLine3, axisLine3Draw)
         
         axisLine3Draw.strokeColor = 'tomato';
@@ -367,7 +370,8 @@ function onMouseUp(event) {
         setupAxis = false
         setupCenter = true
     }
-    else if (setupCenter) {
+    else if (setupCenter)
+    {
         centerPointHom[0] = mousePoint.x
         centerPointHom[1] = mousePoint.y
         
@@ -381,7 +385,8 @@ function onMouseUp(event) {
         setupCenter = false
         setupVanishing = true
     }
-    else if (setupVanishing) {
+    else if (setupVanishing) 
+    {
         vanishingLine3 = ParallelToLine3AndContainsPointHom(axisLine3, [mousePoint.x, mousePoint.y, 1])
         //console.log(vanishingLine3)
         DrawLine3(vanishingLine3, vanishingLine3Draw);
@@ -398,12 +403,15 @@ function onMouseUp(event) {
         setupVanishing = false
         addLine = false
     }
-    else if (addLine) {
+    else if (addLine)
+    {
         newLineEndPoint = mousePoint
         var ln = Line3ContainsPoints(newLineStartPoint, newLineEndPoint)
+        //console.log("mouse line: " + ln);
         DrawLine3(ln, lines[lines.length - 1]);
         
         var pa = Line3Line3Intersection(ln, axisLine3)
+        //console.log("mouse pa intersection: " + pa);
         var ca = new Path.Circle(new Point(pa[0] / pa[2], pa[1] / pa[2]), 3);
         ca.fillColor = 'tomato'
         axisPoints.push(ca);
@@ -425,7 +433,8 @@ function onMouseUp(event) {
         addLine = false;
         //movePoint = true
     }
-    else if (addSegment) {
+    else if (addSegment) 
+    {
         newSegmentEndPoint = mousePoint
         segments[segments.length - 1].segments[1].point = newSegmentEndPoint;
         
@@ -506,8 +515,10 @@ function onKeyDown(event) {
     }
 }
 
-function DrawLine3(line3, line3Draw) {
-    if (Math.abs(line3[1]) > Math.abs(line3[0])) {
+function DrawLine3(line3, line3Draw) 
+{
+    if (Math.abs(line3[1]) > Math.abs(line3[0]))
+    {
         // find y when x = 0
         yLeft = -line3[2] / line3[1]
         // find y when x = w
@@ -517,8 +528,13 @@ function DrawLine3(line3, line3Draw) {
         line3Draw.segments[0].point.y = yLeft;
         line3Draw.segments[1].point.x = w;
         line3Draw.segments[1].point.y = yRight;
+        //console.log("drawline w: " + w)
+        //console.log("drawline: " + line3)
+        //console.log("drawline left: " + yLeft)
+        //console.log("drawline right: " + yRight)
     }
-    else {
+    else 
+    {
         // find x when y = 0
         xTop = -line3[2] / line3[0]
         // find x when y = h
@@ -528,11 +544,18 @@ function DrawLine3(line3, line3Draw) {
         line3Draw.segments[0].point.y = 0;
         line3Draw.segments[1].point.x = xBottom;
         line3Draw.segments[1].point.y = h;
+
+        //console.log("drawline h: " + h)
+        //console.log("drawline: " + line3)
+        //console.log("drawline left: " + yLeft)
+        //console.log("drawline right: " + yRight)
     }
 }
 
-function ParallelToLine3AndContainsPointHom(line3, pointHom) {
-    if (Math.abs(line3[0]) > Math.abs(line3[1])) {
+function ParallelToLine3AndContainsPointHom(line3, pointHom)
+{
+    if (Math.abs(line3[0]) > Math.abs(line3[1]))
+    {
         if (Math.abs(pointHom[0] + pointHom[1] * line3[1] / line3[0]) < EPSILON) {
             //console.log("parallel problem")
         }
@@ -540,52 +563,53 @@ function ParallelToLine3AndContainsPointHom(line3, pointHom) {
         var v2 = v1 * line3[1] / line3[0]
         return [v1, v2, 1.0]
     }
-    else {
+    else 
+    {
         var v2 = -pointHom[2] / (pointHom[1] + line3[0] / line3[1] * pointHom[0])
         var v1 = v2 * line3[0] / line3[1]
         return [v1, v2, 1.0]
     }
 }
 
-function Line3Line3Intersection(a, b) {
-    var y = (b[0] * a[2] - b[2] * a[0]) / (a[0] * b[1] - b[0] * a[1]) 
-    var x = -(a[1] * y + a[2]) / a[0];
+function Line3Line3Intersection(a, b)
+{
+    if (Math.abs(a[0]) > Math.abs(a[1]))
+    {
+        var y = (b[0] * a[2] - b[2] * a[0]) / (a[0] * b[1] - b[0] * a[1]) 
+        var x = -(a[1] * y + a[2]) / a[0];
     
-    return [x, y, 1]
+        return [x, y, 1]
+    }
+    else
+    {
+        var x = (b[1] * a[2] - b[2] * a[1]) / (a[1] * b[0] - b[1] * a[0]) 
+        var y = -(a[0] * x + a[2]) / a[1];
+    
+        return [x, y, 1]
+    }
 }
 
-function Line3ContainsPoints(pointA, pointB) {
+function Line3ContainsPoints(pointA, pointB) 
+{
     var pa = [pointA.x, pointA.y, 1.0]
     var pb = [pointB.x, pointB.y, 1.0]
     return Line3ContainsPointsHom(pa, pb)
 }
 
-function Line3ContainsPointsHom(pointA, pointB) {
-    var ax = pointA[0] / pointA[2]
-    var ay = pointA[1] / pointA[2]
-    var bx = pointB[0] / pointB[2]
-    var by = pointB[1] / pointB[2]
-    if (Math.abs(ay * bx - ax * by) > EPSILON) {
-        //var l2 = (ax - bx) / (ay * bx - ax * by)
-        //var l1 = -(ay * l2 + 1.0) / ax
-        //var l3 = 1
-        if (Math.abs(ay) > Math.abs(ax)) {
-            var l1 = (by - ay) / (bx * ay - ax * by)
-            var l2 = -(l1 * ax + 1.0) / ay
-            var l3 = 1.0
-        
-            return [l1, l2, l3]
-        }
-        else {
-            var l2 = (bx - ax) / (ax * by - bx * ay)
-            var l1 = -(l2 * ay + 1.0) / ax
-            var l3 = 1.0
-        
-            return [l1, l2, l3]
-        }
+function Line3ContainsPointsHom(a, b) 
+{
+    if (Math.abs(a[0] * b[1] - a[1] * b[0]) > EPSILON)
+    {
+        var l3 = a[0];
+        var d = -(a[0] * b[2] - a[2] * b[0]) / (a[0] * b[1] - a[1] * b[0])
+        var l2 = d * a[0]
+        var l1 = -(d * a[1] + a[2])
+
+        return [l1, l2, l3]
     }
-    else {
-        //console.log('line denominator')    
+    else
+    {
+        return [0, a[0], -a[1]]
     }
 }
 
