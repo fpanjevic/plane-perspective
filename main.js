@@ -16,6 +16,7 @@
 //curvedPath.strokeColor = 'black';
 
 var EPSILON = 0.00001;
+var PIXELS_PER_SQUARE = 30;
 
 // state machine
 var setupAxis = true;
@@ -113,30 +114,39 @@ vanishingLine3Draw.strokeCap = 'round';
 
 console.log("middle");
 
-function onMouseDown(event) {
-    console.log("setupAxis: " + setupAxis);
+function SnapPoint(point)
+{
+    snapPoint = point
+    snapPoint.x = GridToPixelX(Math.round(PixelToGridX(point.x)))
+    snapPoint.y = GridToPixelY(Math.round(PixelToGridY(point.y)))
+
+    return snapPoint;
+}
+
+function onMouseDown(event) 
+{
+    /*console.log("setupAxis: " + setupAxis);
     console.log("setupVanishing: " + setupVanishing);
     console.log("setupCenter: " + setupCenter);
     console.log("addLine: " + addLine);
     console.log("addSegment: " + addSegment);
     console.log("movePoint: " + movePoint);
-    console.log("moveLine: " + moveLine);
+    console.log("moveLine: " + moveLine);*/
+    console.log("mouse down x: " + event.point.x)
+    console.log("mouse down y: " + event.point.y)
     
-    var snapPoint = event.point
-    snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
-    snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
-
     var mousePoint;
     if (snapToGridEnabled)
     {
-        mousePoint = snapPoint
+        mousePoint = SnapPoint(event.point);
     }
     else
     {
         mousePoint = event.point
     }
 
-    if (setupAxis) {
+    if (setupAxis) 
+    {
         axisStartPoint = mousePoint;
     	axisEndPoint = mousePoint
 
@@ -171,7 +181,8 @@ function onMouseDown(event) {
         vanishingLabel.rotation = 0
         vanishingLabel.point += (new Point(-5, -7)).rotate(vanishingLabel.rotation)
     }
-    else if (addLine) {
+    else if (addLine)
+    {
         newLineStartPoint = mousePoint;
     	newLineEndPoint = mousePoint;
     	
@@ -200,7 +211,8 @@ function onMouseDown(event) {
         }
     }
     else if (moveLine) {
-        for (i = 0; i < lines.length; i++) {
+        for (i = 0; i < lines.length; i++) 
+        {
             if (PointLine3Distance(event.point, Line3FromLineDraw(lines[i])) < 5) {
                 lines[i].strokeColor = 'blue'
                 //console.log("found line " + i)
@@ -244,14 +256,10 @@ function onMouseDown(event) {
 
 function onMouseDrag(event)
 {
-    var snapPoint = event.point
-    snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
-    snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
-
     var mousePoint;
     if (snapToGridEnabled)
     {
-        mousePoint = snapPoint
+        mousePoint = SnapPoint(event.point);
     }
     else
     {
@@ -290,7 +298,8 @@ function onMouseDrag(event)
         
         centerLabel.point = centerPointDraw.position + new Point(0, -7)
     }
-    else if (setupVanishing) {
+    else if (setupVanishing) 
+    {
         vanishingLine3 = ParallelToLine3AndContainsPointHom(axisLine3, [mousePoint.x, mousePoint.y, 1])
         DrawLine3(vanishingLine3, vanishingLine3Draw);
         
@@ -331,14 +340,10 @@ function onMouseDrag(event)
 
 function onMouseUp(event)
 {
-    var snapPoint = event.point
-    snapPoint.x = Math.round((event.point.x - 10) / 30.0) * 30.0 + 10
-    snapPoint.y = Math.round((event.point.y - 10) / 30.0) * 30.0 + 10
-
     var mousePoint;
     if (snapToGridEnabled)
     {
-        mousePoint = snapPoint
+        mousePoint = SnapPoint(event.point);
     }
     else
     {
@@ -366,6 +371,9 @@ function onMouseUp(event)
         axisLabel.point = (axisEndPoint + axisStartPoint) / 2.0
         axisLabel.rotation = (axisEndPoint - axisStartPoint).angle
         axisLabel.point += (new Point(-5, -7)).rotate(axisLabel.rotation)
+
+        axisLine3Grid = PixelToGridLine3(axisLine3);
+        axisLabel.content = "axis [" + axisLine3Grid[0].toFixed(2) + ", " + axisLine3Grid[1].toFixed(2) + ", " + axisLine3Grid[2].toFixed(2) + "]" 
         
         setupAxis = false
         setupCenter = true
@@ -613,23 +621,25 @@ function Line3ContainsPointsHom(a, b)
     }
 }
 
-function Line3FromLineDraw(lineDraw) {
-    //console.log("linedraw: " + lineDraw.segments[0].point)
-    //console.log("linedraw: " + lineDraw.segments[1].point)
+function Line3FromLineDraw(lineDraw)
+{
     return Line3ContainsPoints(lineDraw.segments[0].point, lineDraw.segments[1].point)
 }
 
-function Hom(point) {
+function Hom(point)
+{
     return [point.x, point.y, 1]
 }
 
-function PointDistance(a, b) {
+function PointDistance(a, b)
+{
     var dx = a.x - b.x
     var dy = a.y - b.y
     return Math.sqrt(dx * dx + dy * dy)
 }
 
-function ClosestPointHomOnLine(line3, point) {
+function ClosestPointHomOnLine(line3, point)
+{
     var pointHom = Hom(point)
     var l1 = line3[0]
     var l2 = line3[1]
@@ -690,7 +700,8 @@ function ProjectPoint(point) {
  * changes in element positions, likely coming from user input
  */
 
-function ComputeLinesFromPoints() {
+function ComputeLinesFromPoints() 
+{
     for (i = 0; i < lines.length; i++) {
         // recompute line
         var v = Hom(vanishingPoints[i].position)
@@ -732,19 +743,81 @@ function ComputePointsFromLines() {
     }
 }
 
+function GridToPixelX(gx)
+{
+    return gx * PIXELS_PER_SQUARE + w / 2;
+}
+
+function GridToPixelY(gy)
+{
+    return -gy * PIXELS_PER_SQUARE + h / 2;
+}
+
+function PixelToGridX(px)
+{
+    return (px - w / 2) / PIXELS_PER_SQUARE;
+}
+
+function PixelToGridY(py)
+{
+    return (h / 2 - py) / PIXELS_PER_SQUARE;
+}
+
+function GridToPixelLine3(lp)
+{
+    var lp0 = lg[0];
+    var lp1 = -lg[1];
+    var lp2 = lg[2] * PIXELS_PER_SQUARE - lg[0] * w / 2 - lg[1] * h / 2
+
+    return [lp0, lp1, lp2]
+}
+
+function PixelToGridLine3(lp)
+{
+    var lg0 = lp[0];
+    var lg1 = -lp[1];
+    var lg2 = 1.0 / PIXELS_PER_SQUARE * (lp[2] + lp[0] * w / 2 + lp[1] * h / 2)
+
+    return [lg0, lg1, lg2]
+}
+
 function DrawGrid()
 {
-    for (x = 10; x < w; x += 30)
+    var squareCountW = w / PIXELS_PER_SQUARE;
+    for (xs = -Math.floor(squareCountW / 2) - 1; xs < squareCountW / 2 + 1; xs++)
     {
+        var x = GridToPixelX(xs)
         var gridLine = new Path.Line(new Point(x, 0), new Point(x, h));
-        gridLine.strokeColor = 'powderblue';    
+        if (xs == 0) 
+        {
+            console.log("grid x: " + x)
+            console.log("grid w: " + w)
+            console.log("grid h: " + h)
+            gridLine.strokeColor = 'blue';    
+        }
+        else
+        {
+            gridLine.strokeColor = 'powderblue';    
+        }
         gridLine.strokeWidth = 1.0;
         gridLines.push(gridLine);
     }
-    for (y = 10; y < h; y += 30)
+    var squareCountH = h / PIXELS_PER_SQUARE;
+    for (ys = -Math.floor(squareCountH / 2) - 1; ys < squareCountH / 2 + 1; ys++)
     {
+        var y = GridToPixelY(ys)
         var gridLine = new Path.Line(new Point(0, y), new Point(w, y));
-        gridLine.strokeColor = 'powderblue';    
+        if (ys == 0) 
+        {
+            console.log("grid y: " + y)
+            console.log("grid w: " + w)
+            console.log("grid h: " + h)
+            gridLine.strokeColor = 'blue';    
+        }
+        else
+        {
+            gridLine.strokeColor = 'powderblue';    
+        }
         gridLine.strokeWidth = 1.0;
         gridLines.push(gridLine);
     }
