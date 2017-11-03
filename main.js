@@ -75,6 +75,7 @@ var vanishingLine3 = [0, 1, 0]
 var vanishingLine3Draw = new Path.Line(new Point(0, 0), new Point(0, 0));
 
 var lines = []
+var lineLabels = []
 var segments = []
 var axisPoints = []
 var vanishingPoints = []
@@ -190,7 +191,8 @@ function onMouseDown(event)
     	newLine3Draw.strokeColor = 'tomato';
     	lines.push(newLine3Draw)
     }
-    else if (addSegment) {
+    else if (addSegment)
+    {
         //console.log("add segment mouse down")
         newSegmentStartPoint = mousePoint;
     	newSegmentEndPoint = mousePoint;
@@ -201,7 +203,8 @@ function onMouseDown(event)
     	newSegment3Draw.strokeCap = 'round'
     	segments.push(newSegment3Draw)
     }
-    else if (movePoint) {
+    else if (movePoint) 
+    {
         for (i = 0; i < vanishingPoints.length; i++) {
             if (PointDistance(vanishingPoints[i].position, event.point) < 5) {
                 vanishingPoints[i].fillColor = 'blue'
@@ -317,24 +320,29 @@ function onMouseDrag(event)
         lines[lines.length - 1].segments[0].point = newLineStartPoint;
         lines[lines.length - 1].segments[1].point = newLineEndPoint;
     }
-    else if (addSegment) {
+    else if (addSegment)
+    {
         newSegmentEndPoint = mousePoint
         segments[segments.length - 1].segments[0].point = newSegmentStartPoint;
         segments[segments.length - 1].segments[1].point = newSegmentEndPoint;
     }
-    else if (movePoint && movingPoint != -1) {
-        var pointHom = ClosestPointHomOnLine(vanishingLine3, mousePoint)
+    else if (movePoint && movingPoint != -1) 
+    {
+        var pointHom = ClosestPointHomOnLine3(vanishingLine3, mousePoint)
         vanishingPoints[movingPoint].position.x = pointHom[0] / pointHom[2]
         vanishingPoints[movingPoint].position.y = pointHom[1] / pointHom[2]
         ComputeLinesFromPoints()
+        RefreshLineLabels()
     }
-    else if (moveLine && movingLine != -1) {
+    else if (moveLine && movingLine != -1)
+    {
         // compute line3 from line3
         var line3 = Line3FromLineDraw(lines[movingLine])
         var newLine3 = ParallelToLine3AndContainsPointHom(line3, Hom(mousePoint))
 
         DrawLine3(newLine3, lines[movingLine])
         ComputePointsFromLines()
+        RefreshLineLabels()
     }
 }
 
@@ -429,15 +437,31 @@ function onMouseUp(event)
         cv.fillColor = 'tomato'
         vanishingPoints.push(cv);
         
+        // compute the projection line
         var ov = Line3ContainsPointsHom(centerPointHom, pv)
         var projectionLine3 = ParallelToLine3AndContainsPointHom(ov, pa)
         
+        // create the projection line and add it to the
+        // drawing list
         var projectionLine3Draw = new Path.Line(new Point(0, 0), new Point(0, 0))
         DrawLine3(projectionLine3, projectionLine3Draw)
         projectionLine3Draw.strokeColor = 'tomato';
         projectionLine3Draw.dashArray = [5, 3];
         projectionLines.push(projectionLine3Draw)
         
+        // create the line label and add it to the label list
+        var gln = PixelToGridLine3(ln)
+        var lineLabel = new PointText({
+			point: new Point(-100, -100),
+			content: "[" + gln[0].toFixed(2) + ", " + gln[1].toFixed(2) + ", " + gln[2].toFixed(2) + "]",
+			fillColor: 'black',
+			justification: 'center'
+        });
+        lineLabel.point = (newLineEndPoint + newLineStartPoint) / 2.0
+        lineLabel.rotation = (newLineEndPoint - newLineStartPoint).angle
+        lineLabel.point += (new Point(-5, -7)).rotate(lineLabel.rotation)
+        lineLabels.push(lineLabel);
+
         addLine = false;
         //movePoint = true
     }
@@ -457,11 +481,13 @@ function onMouseUp(event)
         
         addSegment = false
     }
-    else if (movePoint && movingPoint != -1) {
-        var pointHom = ClosestPointHomOnLine(vanishingLine3, mousePoint)
+    else if (movePoint && movingPoint != -1)
+    {
+        var pointHom = ClosestPointHomOnLine3(vanishingLine3, mousePoint)
         vanishingPoints[movingPoint].position.x = pointHom[0] / pointHom[2]
         vanishingPoints[movingPoint].position.y = pointHom[1] / pointHom[2]
         ComputeLinesFromPoints()
+        RefreshLineLabels()
         
         vanishingPoints[movingPoint].fillColor = 'tomato'
         
@@ -475,7 +501,8 @@ function onMouseUp(event)
     }
 }
 
-function onKeyDown(event) {
+function onKeyDown(event)
+{
     movePoint = false
     addLine = false
     addSegment = false
@@ -608,12 +635,24 @@ function Line3ContainsPointsHom(a, b)
 {
     if (Math.abs(a[0] * b[1] - a[1] * b[0]) > EPSILON)
     {
-        var l3 = a[0];
-        var d = -(a[0] * b[2] - a[2] * b[0]) / (a[0] * b[1] - a[1] * b[0])
-        var l2 = d * a[0]
-        var l1 = -(d * a[1] + a[2])
+        if (Math.abs(a[0]) > EPSILON)
+        {
+            var l3 = a[0];
+            var d = -(a[0] * b[2] - a[2] * b[0]) / (a[0] * b[1] - a[1] * b[0])
+            var l2 = d * a[0]
+            var l1 = -(d * a[1] + a[2])
 
-        return [l1, l2, l3]
+            return [l1, l2, l3]
+        }
+        else
+        {
+            var l2 = a[1]
+            var d = -(a[1] * b[2] - b[1] * a[2]) / (a[1] * b[0] - b[1] * a[0])
+            var l0 = d * a[1]
+            var l1 = -(d * a[0] + a[2])
+
+            return [l0, l1, l2]
+        }
     }
     else
     {
@@ -638,7 +677,7 @@ function PointDistance(a, b)
     return Math.sqrt(dx * dx + dy * dy)
 }
 
-function ClosestPointHomOnLine(line3, point)
+function ClosestPointHomOnLine3(line3, point)
 {
     var pointHom = Hom(point)
     var l1 = line3[0]
@@ -654,7 +693,8 @@ function ClosestPointHomOnLine(line3, point)
     return [pointHom[0] - d1, pointHom[1] - d2, 1.0]
 }
 
-function PointLine3Distance(point, line3) {
+function PointLine3Distance(point, line3)
+{
     var pointHom = Hom(point)
     var l1 = line3[0]
     var l2 = line3[1]
@@ -676,7 +716,7 @@ function ProjectPoint(point) {
     
     var G = Hom(point)
     ////console.log("G: " + G)
-    var V = ClosestPointHomOnLine(vanishingLine3, point)
+    var V = ClosestPointHomOnLine3(vanishingLine3, point)
     ////console.log("V: " + V)
     var VG = Line3ContainsPointsHom(G, V)
     ////console.log("VG: " + VG)
@@ -721,7 +761,8 @@ function ComputeLinesFromPoints()
     }
 }
 
-function ComputePointsFromLines() {
+function ComputePointsFromLines()
+{
     for (i = 0; i < lines.length; i++)
     {
         // compute line3 from lineDraw
@@ -740,6 +781,27 @@ function ComputePointsFromLines() {
         var projectionLine3 = ParallelToLine3AndContainsPointHom(ov, l)
         
         DrawLine3(projectionLine3, projectionLines[i])
+    }
+}
+
+function RefreshLineLabels()
+{
+    for (i = 0; i < lineLabels.length; i++)
+    {
+        var p = Line3FromLineDraw(lines[i])
+        console.log(p)
+        var gln = PixelToGridLine3(p)
+        
+        // refresh label contents
+        lineLabels[i].content = "[" + gln[0].toFixed(2) + ", " + gln[1].toFixed(2) + ", " + gln[2].toFixed(2) + "]"
+
+        // refresh label position
+        var linePoint = lineLabels[i].point - (new Point(-5, -7)).rotate(lineLabels[i].rotation)
+        var lp = ClosestPointHomOnLine3(p, linePoint)
+
+        lineLabels[i].point = lp
+        lineLabels[i].rotation = (lines[i].segments[1].point - lines[i].segments[0].point).angle
+        lineLabels[i].point += (new Point(-5, -7)).rotate(lineLabels[i].rotation)
     }
 }
 
