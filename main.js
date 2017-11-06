@@ -80,6 +80,7 @@ var segments = []
 var axisPoints = []
 var vanishingPoints = []
 var projectionLines = []
+var projectionLineLabels = []
 var projectionSegments = []
 
 console.log("3")
@@ -423,11 +424,11 @@ function onMouseUp(event)
     {
         newLineEndPoint = mousePoint
         var ln = Line3ContainsPoints(newLineStartPoint, newLineEndPoint)
-        //console.log("mouse line: " + ln);
+        
         DrawLine3(ln, lines[lines.length - 1]);
         
         var pa = Line3Line3Intersection(ln, axisLine3)
-        //console.log("mouse pa intersection: " + pa);
+        
         var ca = new Path.Circle(new Point(pa[0] / pa[2], pa[1] / pa[2]), 3);
         ca.fillColor = 'tomato'
         axisPoints.push(ca);
@@ -441,26 +442,21 @@ function onMouseUp(event)
         var ov = Line3ContainsPointsHom(centerPointHom, pv)
         var projectionLine3 = ParallelToLine3AndContainsPointHom(ov, pa)
         
-        // create the projection line and add it to the
-        // drawing list
+        // create the line label and add it to the label list
+        CreateLabel(ln, false)
+
+        // create the projection line and add it to the drawing list
         var projectionLine3Draw = new Path.Line(new Point(0, 0), new Point(0, 0))
         DrawLine3(projectionLine3, projectionLine3Draw)
         projectionLine3Draw.strokeColor = 'tomato';
         projectionLine3Draw.dashArray = [5, 3];
         projectionLines.push(projectionLine3Draw)
+
+        // create the projection line label and add it to the label list
+        CreateLabel(projectionLine3, true)
         
-        // create the line label and add it to the label list
-        var gln = PixelToGridLine3(ln)
-        var lineLabel = new PointText({
-			point: new Point(-100, -100),
-			content: "[" + gln[0].toFixed(2) + ", " + gln[1].toFixed(2) + ", " + gln[2].toFixed(2) + "]",
-			fillColor: 'black',
-			justification: 'center'
-        });
-        lineLabel.point = (newLineEndPoint + newLineStartPoint) / 2.0
-        lineLabel.rotation = (newLineEndPoint - newLineStartPoint).angle
-        lineLabel.point += (new Point(-5, -7)).rotate(lineLabel.rotation)
-        lineLabels.push(lineLabel);
+        // draw labels
+        RefreshLineLabels()
 
         addLine = false;
         //movePoint = true
@@ -498,6 +494,32 @@ function onMouseUp(event)
         lines[movingLine].strokeColor = 'tomato'
         movingLine = -1
         moveLine = false
+    }
+}
+
+function CreateLabel(line3, isProjection)
+{
+    if (isProjection)
+    {
+        var edge = Line3ScreenEdgePoints(line3)
+        var lineLabel = new PointText({
+			point: edge[0] * 0.8 + edge[1] * 0.2,
+			content: "",
+			fillColor: 'purple',
+			justification: 'center'
+        });
+        projectionLineLabels.push(lineLabel);
+    }
+    else
+    {
+        var edge = Line3ScreenEdgePoints(line3)
+        var lineLabel = new PointText({
+			point: edge[0] * 0.8 + edge[1] * 0.2,
+			content: "",
+			fillColor: 'black',
+			justification: 'center'
+        });
+        lineLabels.push(lineLabel);
     }
 }
 
@@ -550,7 +572,7 @@ function onKeyDown(event)
     }
 }
 
-function DrawLine3(line3, line3Draw) 
+function Line3ScreenEdgePoints(line3)
 {
     if (Math.abs(line3[1]) > Math.abs(line3[0]))
     {
@@ -559,14 +581,7 @@ function DrawLine3(line3, line3Draw)
         // find y when x = w
         yRight = -(line3[0] * w + line3[2]) / line3[1]
         
-        line3Draw.segments[0].point.x = 0;
-        line3Draw.segments[0].point.y = yLeft;
-        line3Draw.segments[1].point.x = w;
-        line3Draw.segments[1].point.y = yRight;
-        //console.log("drawline w: " + w)
-        //console.log("drawline: " + line3)
-        //console.log("drawline left: " + yLeft)
-        //console.log("drawline right: " + yRight)
+        return [new Point(0, yLeft), new Point(w, yRight)];
     }
     else 
     {
@@ -575,16 +590,16 @@ function DrawLine3(line3, line3Draw)
         // find x when y = h
         xBottom = -(line3[1] * h + line3[2]) / line3[0]
         
-        line3Draw.segments[0].point.x = xTop;
-        line3Draw.segments[0].point.y = 0;
-        line3Draw.segments[1].point.x = xBottom;
-        line3Draw.segments[1].point.y = h;
-
-        //console.log("drawline h: " + h)
-        //console.log("drawline: " + line3)
-        //console.log("drawline left: " + yLeft)
-        //console.log("drawline right: " + yRight)
+        return [new Point(xTop, 0), new Point(xBottom, h)];
     }
+}
+
+function DrawLine3(line3, line3Draw) 
+{
+    var points = Line3ScreenEdgePoints(line3)
+
+    line3Draw.segments[0].point = points[0];
+    line3Draw.segments[1].point = points[1];
 }
 
 function ParallelToLine3AndContainsPointHom(line3, pointHom)
@@ -803,6 +818,24 @@ function RefreshLineLabels()
         lineLabels[i].rotation = (lines[i].segments[1].point - lines[i].segments[0].point).angle
         lineLabels[i].point += (new Point(-5, -7)).rotate(lineLabels[i].rotation)
     }
+
+    for (i = 0; i < projectionLineLabels.length; i++)
+    {
+        var p = Line3FromLineDraw(projectionLines[i])
+        console.log(p)
+        var gln = PixelToGridLine3(p)
+        
+        // refresh label contents
+        projectionLineLabels[i].content = "[" + gln[0].toFixed(2) + ", " + gln[1].toFixed(2) + ", " + gln[2].toFixed(2) + "]"
+
+        // refresh label position
+        var projectionLinePoint = projectionLineLabels[i].point - (new Point(-5, -7)).rotate(projectionLineLabels[i].rotation)
+        var lp = ClosestPointHomOnLine3(p, projectionLinePoint)
+
+        projectionLineLabels[i].point = lp
+        projectionLineLabels[i].rotation = (projectionLines[i].segments[1].point - projectionLines[i].segments[0].point).angle
+        projectionLineLabels[i].point += (new Point(-5, -7)).rotate(projectionLineLabels[i].rotation)
+    }
 }
 
 function GridToPixelX(gx)
@@ -830,8 +863,6 @@ function GridToPixelLine3(lp)
     var lp0 = lg[0];
     var lp1 = -lg[1];
     var lp2 = lg[2] * PIXELS_PER_SQUARE - lg[0] * w / 2 - lg[1] * h / 2
-
-    return [lp0, lp1, lp2]
 }
 
 function PixelToGridLine3(lp)
@@ -840,7 +871,14 @@ function PixelToGridLine3(lp)
     var lg1 = -lp[1];
     var lg2 = 1.0 / PIXELS_PER_SQUARE * (lp[2] + lp[0] * w / 2 + lp[1] * h / 2)
 
-    return [lg0, lg1, lg2]
+    if (Math.abs(lg0) > EPSILON)
+    {
+        return [1.0, lg1 / lg0, lg2 / lg0]
+    }
+    else
+    {
+        return [lg0 / lg1, 1.0, lg2 / lg1]
+    }
 }
 
 function DrawGrid()
