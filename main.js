@@ -17,6 +17,7 @@
 
 var EPSILON = 0.00001;
 var PIXELS_PER_SQUARE = 30;
+var GRID_OPACITY = 0.4
 
 // state machine
 var setupAxis = true;
@@ -46,7 +47,7 @@ console.log(h);
 
 // draw grid
 var gridLines = [];
-var GRID_OPACITY = 0.6
+
 DrawGrid();
 var gridEnabled = false
 var snapToGridEnabled = false
@@ -85,11 +86,34 @@ var projectionSegments = []
 
 console.log("3")
 
+//var helpRect = new Path.Rectangle(helpLabel.bounds);
+var margin = 5
+var helpRect = new Path.Rectangle(-10, -10, 10, 10);
+helpRect.strokeColor = 'powderblue';
+helpRect.fillColor = 'powderblue';
+helpRect.opacity = 0.7;
+
+var helpLabel = new PointText({
+    point: new Point(30, 30),
+    content: ' ',
+    fillColor: 'black',
+    justification: 'left',
+    opacity: 1.0
+});
+
+var helpText = "Keys:\n\nL    draw line\nM    move point\nP    move line\nG    draw grid, snap to grid"
+helpText += "\nC    clone line"
+var showHelp = false
+
+SetTopLeftText("Click on the canvas to define your projection\nPress H for help", true);
+
+
 var axisLabel = new PointText({
 			point: new Point(-100, -100),
 			content: 'axis',
 			fillColor: 'black',
-			justification: 'left'
+            justification: 'left',
+            fontSize: 12
 		});
 		
 var centerLabel = new PointText({
@@ -149,6 +173,9 @@ function onMouseDown(event)
 
     if (setupAxis) 
     {
+        // clear the starting hint
+        SetTopLeftText(" ", false);
+
         axisStartPoint = mousePoint;
     	axisEndPoint = mousePoint
 
@@ -538,7 +565,8 @@ function onKeyDown(event)
     moveLine = false
     cloneLine = false
 
-	if (event.key == 'm') {
+    if (event.key == 'm')
+    {
 	    movePoint = true
 	    addLine = false
 	    addSegment = false
@@ -576,6 +604,19 @@ function onKeyDown(event)
         }
 
         ShowGrid(gridEnabled)
+    }
+    else if (event.key == 'h')
+    {
+        if (!showHelp)
+        {
+            showHelp = true;
+            SetTopLeftText(helpText, true);
+        }
+        else
+        {
+            showHelp = false;
+            SetTopLeftText("", false);
+        }
     }
 }
 
@@ -934,13 +975,13 @@ function DrawGrid()
         var gridLine = new Path.Line(new Point(x, 0), new Point(x, h));
         if (xs == 0) 
         {
-            console.log("grid x: " + x)
-            console.log("grid w: " + w)
-            console.log("grid h: " + h)
-            gridLine.strokeColor = 'blue';    
+            //gridLine.strokeColor = 'blue';    
+            gridLine.strokeColor = 'powderblue';    
+            gridLine.opacity = 1.0
         }
         else
         {
+            gridLine.opacity = GRID_OPACITY
             gridLine.strokeColor = 'powderblue';    
         }
         gridLine.strokeWidth = 1.0;
@@ -953,13 +994,13 @@ function DrawGrid()
         var gridLine = new Path.Line(new Point(0, y), new Point(w, y));
         if (ys == 0) 
         {
-            console.log("grid y: " + y)
-            console.log("grid w: " + w)
-            console.log("grid h: " + h)
-            gridLine.strokeColor = 'blue';    
+            //gridLine.strokeColor = 'blue';    
+            gridLine.strokeColor = 'powderblue';    
+            gridLine.opacity = 1.0
         }
         else
         {
+            gridLine.opacity = GRID_OPACITY
             gridLine.strokeColor = 'powderblue';    
         }
         gridLine.strokeWidth = 1.0;
@@ -973,11 +1014,31 @@ function ShowGrid(showGrid)
     {
         if (showGrid)
         {
-            gridLines[i].opacity = GRID_OPACITY
+            //gridLines[i].opacity = GRID_OPACITY
+            gridLines[i].visible = true
         }
         else
         {
-            gridLines[i].opacity = 0.0;
+            gridLines[i].visible = false
+            //gridLines[i].opacity = 0.0;
         }
     }
+}
+
+function SetTopLeftText(text, visible)
+{
+    helpLabel.content = text;
+    
+    if (visible)
+    {
+        helpRect.bounds.set(helpLabel.bounds.x - margin,
+            helpLabel.bounds.y - margin,
+            helpLabel.bounds.width + 2 * margin,
+            helpLabel.bounds.height + 2 * margin);
+    }
+    else
+    {
+        helpRect.bounds.set(-10, -10, 10, 10);
+    }
+
 }
