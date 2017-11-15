@@ -55,7 +55,7 @@ ShowGrid(gridEnabled);
 console.log("1.1");
 
 var axisL1 = 0;
-var axisL2 = 2.0 / h;
+var axisL2 = -2.0 / h;
 var axisL3 = 1;
 
 console.log("1.2");
@@ -176,7 +176,7 @@ function onMouseDown(event)
         
         vanishingLine3Draw.strokeColor = 'tomato';
         vanishingLine3Draw.strokeWidth = 1
-        vanishingLine3Draw.dashArray = [1];
+        vanishingLine3Draw.dashArray = [];
         //vanishingLine3Draw.dashArray = [10, 12];
         
         vanishingLabel.point = new Point(-100, -100)
@@ -214,10 +214,12 @@ function onMouseDown(event)
             }
         }
     }
-    else if (moveLine) {
+    else if (moveLine)
+    {
         for (i = 0; i < lines.length; i++) 
         {
-            if (PointLine3Distance(event.point, Line3FromLineDraw(lines[i])) < 5) {
+            if (PointLine3Distance(event.point, Line3FromLineDraw(lines[i])) < 5)
+            {
                 lines[i].strokeColor = 'blue'
                 //console.log("found line " + i)
                 movingLine = i;
@@ -293,7 +295,8 @@ function onMouseDrag(event)
         axisLine3Draw.segments[0].point = axisStartPoint;
         axisLine3Draw.segments[1].point = axisEndPoint;
     }
-    else if (setupCenter) {
+    else if (setupCenter)
+    {
         centerPointHom[0] = mousePoint.x
         centerPointHom[1] = mousePoint.y
         
@@ -310,13 +313,14 @@ function onMouseDrag(event)
         vanishingLine3Draw.strokeColor = 'tomato';
         vanishingLine3Draw.strokeWidth = 1
         //vanishingLine3Draw.dashArray = [10, 12];
-        vanishingLine3Draw.dashArray = [1]
+        vanishingLine3Draw.dashArray = []
         
         vanishingLabel.point = mousePoint
         vanishingLabel.rotation = axisLabel.rotation
         vanishingLabel.point += (new Point(-5, -7)).rotate(vanishingLabel.rotation)
     }
-    else if (addLine) {
+    else if (addLine)
+    {
         newLineEndPoint = mousePoint
         lines[lines.length - 1].segments[0].point = newLineStartPoint;
         lines[lines.length - 1].segments[1].point = newLineEndPoint;
@@ -490,7 +494,8 @@ function onMouseUp(event)
         movingPoint = -1
         movePoint = false
     } 
-    else if (moveLine && movingLine != -1) {
+    else if (moveLine && movingLine != -1)
+    {
         lines[movingLine].strokeColor = 'tomato'
         movingLine = -1
         moveLine = false
@@ -503,18 +508,20 @@ function CreateLabel(line3, isProjection)
     {
         var edge = Line3ScreenEdgePoints(line3)
         var lineLabel = new PointText({
-			point: edge[0] * 0.8 + edge[1] * 0.2,
+			point: edge[0] * 0.7 + edge[1] * 0.3,
 			content: "",
 			fillColor: 'purple',
 			justification: 'center'
         });
+        //console.log("edges: " + edge)
         projectionLineLabels.push(lineLabel);
     }
     else
     {
+        console.log("edges: " + edge)
         var edge = Line3ScreenEdgePoints(line3)
         var lineLabel = new PointText({
-			point: edge[0] * 0.8 + edge[1] * 0.2,
+			point: edge[0] * 0.7 + edge[1] * 0.3,
 			content: "",
 			fillColor: 'black',
 			justification: 'center'
@@ -574,24 +581,61 @@ function onKeyDown(event)
 
 function Line3ScreenEdgePoints(line3)
 {
-    if (Math.abs(line3[1]) > Math.abs(line3[0]))
+    var intersections = [];
+
+    // top edge intersection, y = 0
     {
-        // find y when x = 0
-        yLeft = -line3[2] / line3[1]
-        // find y when x = w
-        yRight = -(line3[0] * w + line3[2]) / line3[1]
-        
-        return [new Point(0, yLeft), new Point(w, yRight)];
+        var x = -line3[2] / line3[0];
+        if ((x >= 0) && (x <= w))
+        {
+            intersections.push(new Point(x, 0));
+        }
+        if (intersections.length == 2)
+        {
+            return intersections;
+        }
     }
-    else 
+
+    // bottom edge intersection, y = h
     {
-        // find x when y = 0
-        xTop = -line3[2] / line3[0]
-        // find x when y = h
-        xBottom = -(line3[1] * h + line3[2]) / line3[0]
-        
-        return [new Point(xTop, 0), new Point(xBottom, h)];
+        var x = -(line3[2] + line3[1] * h) / line3[0];
+        if ((x >= 0) && (x <= w))
+        {
+            intersections.push(new Point(x, h));
+        }
+        if (intersections.length == 2)
+        {
+            return intersections;
+        }
     }
+
+    // left edge intersection, x = 0
+    {
+        var y = -line3[2] / line3[1];
+        if ((y >= 0) && (y <= h))
+        {
+            intersections.push(new Point(0, y))
+        }
+        if (intersections.length == 2)
+        {
+            return intersections;
+        }
+    }
+
+    // right edge intersection, x = w
+    {
+        var y = -(line3[2] + line3[0] * w) / line3[1];
+        if ((y >= 0) && (y <= h))
+        {
+            intersections.push(new Point(w, y))
+        }
+        if (intersections.length == 2)
+        {
+            return intersections;
+        }
+    }
+
+    console.log("ERROR: Line3ScreenEdgePoints not found");
 }
 
 function DrawLine3(line3, line3Draw) 
