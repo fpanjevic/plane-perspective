@@ -841,7 +841,8 @@ function ProjectPoint(point) {
 
 function ComputeLinesFromPoints() 
 {
-    for (i = 0; i < lines.length; i++) {
+    for (i = 0; i < lines.length; i++)
+    {
         // recompute line
         var v = Hom(vanishingPoints[i].position)
         var l = Hom(axisPoints[i].position)
@@ -888,14 +889,13 @@ function RefreshLineLabels()
     for (i = 0; i < lineLabels.length; i++)
     {
         var p = Line3FromLineDraw(lines[i])
-        console.log(p)
+        //console.log(p)
         var gln = PixelToGridLine3(p)
         
         // refresh label contents
         lineLabels[i].content = "[" + gln[0].toFixed(2) + ", " + gln[1].toFixed(2) + ", " + gln[2].toFixed(2) + "]"
 
         // refresh label position
-        //var linePoint = lineLabels[i].point - (new Point(-5, -7)).rotate(lineLabels[i].rotation)
         var edge = Line3ScreenEdgePoints(p);
         var lp = edge[0] * 0.7 + edge[1] * 0.3;
         
@@ -915,8 +915,6 @@ function RefreshLineLabels()
         projectionLineLabels[i].content = "[" + gln[0].toFixed(2) + ", " + gln[1].toFixed(2) + ", " + gln[2].toFixed(2) + "]"
 
         // refresh label position
-        //var projectionLinePoint = projectionLineLabels[i].point - (new Point(-5, -7)).rotate(projectionLineLabels[i].rotation)
-        //var lp = ClosestPointHomOnLine3(p, projectionLinePoint)
         var edge = Line3ScreenEdgePoints(p);
         var lp = edge[0] * 0.7 + edge[1] * 0.3;
 
@@ -1012,23 +1010,27 @@ function DrawGrid()
     }
 }
 
-function ShowGrid(showGrid)
+//-----------------------------------------------------------------------------
+// Desc:    Toggle grid visualization
+//
+// Params:
+//          visible         [bool] true to show, false to hide grid
+//-----------------------------------------------------------------------------
+function ShowGrid(visible)
 {
     for (var i = 0; i < gridLines.length; i++)
     {
-        if (showGrid)
-        {
-            //gridLines[i].opacity = GRID_OPACITY
-            gridLines[i].visible = true
-        }
-        else
-        {
-            gridLines[i].visible = false
-            //gridLines[i].opacity = 0.0;
-        }
+        gridLines[i].visible = visible;
     }
 }
 
+//-----------------------------------------------------------------------------
+// Desc:    Set text displayed in the top left text box
+//
+// Params:
+//          text            [string] text to be displayed
+//          visible         [bool] show or hide
+//-----------------------------------------------------------------------------
 function SetTopLeftText(text, visible)
 {
     helpLabel.content = text;
