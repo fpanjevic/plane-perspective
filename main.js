@@ -487,7 +487,7 @@ function onMouseUp(event)
         CreateLabel(projectionLine3, true)
         
         // draw labels
-        RefreshLineLabels()
+        RefreshLineLabels();
 
         addLine = false;
         //movePoint = true
@@ -545,7 +545,6 @@ function CreateLabel(line3, isProjection)
     }
     else
     {
-        console.log("edges: " + edge)
         var edge = Line3ScreenEdgePoints(line3)
         var lineLabel = new PointText({
 			point: edge[0] * 0.7 + edge[1] * 0.3,
@@ -896,30 +895,35 @@ function RefreshLineLabels()
         lineLabels[i].content = "[" + gln[0].toFixed(2) + ", " + gln[1].toFixed(2) + ", " + gln[2].toFixed(2) + "]"
 
         // refresh label position
-        var linePoint = lineLabels[i].point - (new Point(-5, -7)).rotate(lineLabels[i].rotation)
-        var lp = ClosestPointHomOnLine3(p, linePoint)
-
+        //var linePoint = lineLabels[i].point - (new Point(-5, -7)).rotate(lineLabels[i].rotation)
+        var edge = Line3ScreenEdgePoints(p);
+        var lp = edge[0] * 0.7 + edge[1] * 0.3;
+        
+        // rotation must be set before point position
+        var ang = (lines[i].segments[1].point - lines[i].segments[0].point).angle
+        lineLabels[i].rotation = ang
         lineLabels[i].point = lp
-        lineLabels[i].rotation = (lines[i].segments[1].point - lines[i].segments[0].point).angle
-        lineLabels[i].point += (new Point(-5, -7)).rotate(lineLabels[i].rotation)
+        lineLabels[i].point += (new Point(-5, -7)).rotate(ang)
     }
 
     for (i = 0; i < projectionLineLabels.length; i++)
     {
         var p = Line3FromLineDraw(projectionLines[i])
-        console.log(p)
         var gln = PixelToGridLine3(p)
         
         // refresh label contents
         projectionLineLabels[i].content = "[" + gln[0].toFixed(2) + ", " + gln[1].toFixed(2) + ", " + gln[2].toFixed(2) + "]"
 
         // refresh label position
-        var projectionLinePoint = projectionLineLabels[i].point - (new Point(-5, -7)).rotate(projectionLineLabels[i].rotation)
-        var lp = ClosestPointHomOnLine3(p, projectionLinePoint)
+        //var projectionLinePoint = projectionLineLabels[i].point - (new Point(-5, -7)).rotate(projectionLineLabels[i].rotation)
+        //var lp = ClosestPointHomOnLine3(p, projectionLinePoint)
+        var edge = Line3ScreenEdgePoints(p);
+        var lp = edge[0] * 0.7 + edge[1] * 0.3;
 
+        var ang = (projectionLines[i].segments[1].point - projectionLines[i].segments[0].point).angle
+        projectionLineLabels[i].rotation = ang
         projectionLineLabels[i].point = lp
-        projectionLineLabels[i].rotation = (projectionLines[i].segments[1].point - projectionLines[i].segments[0].point).angle
-        projectionLineLabels[i].point += (new Point(-5, -7)).rotate(projectionLineLabels[i].rotation)
+        projectionLineLabels[i].point += (new Point(-5, -7)).rotate(ang)
     }
 }
 
