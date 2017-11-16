@@ -18,6 +18,7 @@
 var EPSILON = 0.00001;
 var PIXELS_PER_SQUARE = 30;
 var GRID_OPACITY = 0.4
+var SEGMENT_COLOR = 'purple'
 
 // state machine
 var setupAxis = true;
@@ -161,6 +162,8 @@ function onMouseDown(event)
     console.log("mouse down x: " + event.point.x)
     console.log("mouse down y: " + event.point.y)
     
+    // is snap-to-grid is enabled, move point to closest
+    // grid point
     var mousePoint;
     if (snapToGridEnabled)
     {
@@ -185,13 +188,13 @@ function onMouseDown(event)
         axisLine3Draw.strokeColor = 'tomato';
         axisLine3Draw.strokeWidth = 1
         axisLine3Draw.dashArray = [5, 3];
-        //axisLine3Draw.dashArray = [10, 12];
         
         axisLabel.point = new Point(-100, -100)
         axisLabel.rotation = 0
         axisLabel.point += (new Point(-5, -7)).rotate(axisLabel.rotation)
     }
-    else if (setupCenter) {
+    else if (setupCenter)
+    {
         centerLabel.point = new Point(-100, -100)
         centerLabel.rotation = 0
         centerLabel.point += (new Point(-7, 0)).rotate(centerLabel.rotation)
@@ -221,21 +224,27 @@ function onMouseDown(event)
     }
     else if (addSegment)
     {
+        // if a line segment is being added, try to snap to nearby
+        // line segment
+        var segmentPoint = FindNearbyLineSegmentPoint(mousePoint, 10);
+
         //console.log("add segment mouse down")
-        newSegmentStartPoint = mousePoint;
-    	newSegmentEndPoint = mousePoint;
+        newSegmentStartPoint = segmentPoint;
+    	newSegmentEndPoint = segmentPoint;
     	
     	var newSegment3Draw = new Path.Line(newSegmentStartPoint, newSegmentEndPoint)
-    	newSegment3Draw.strokeColor = 'purple';
-    	newSegment3Draw.strokeWidth = 2
+    	newSegment3Draw.strokeColor = SEGMENT_COLOR;
+    	newSegment3Draw.strokeWidth = 1
     	newSegment3Draw.strokeCap = 'round'
     	segments.push(newSegment3Draw)
     }
     else if (movePoint) 
     {
-        for (i = 0; i < vanishingPoints.length; i++) {
-            if (PointDistance(vanishingPoints[i].position, event.point) < 5) {
-                vanishingPoints[i].fillColor = 'blue'
+        for (i = 0; i < vanishingPoints.length; i++)
+        {
+            if (PointDistance(vanishingPoints[i].position, event.point) < 5)
+            {
+                vanishingPoints[i].fillColor = 'lightblue'
                 movingPoint = i;
                 break;
             }
@@ -247,7 +256,7 @@ function onMouseDown(event)
         {
             if (PointLine3Distance(event.point, Line3FromLineDraw(lines[i])) < 5)
             {
-                lines[i].strokeColor = 'blue'
+                lines[i].strokeColor = 'lightblue'
                 //console.log("found line " + i)
                 movingLine = i;
                 break;
@@ -340,7 +349,7 @@ function onMouseDrag(event)
         vanishingLine3Draw.strokeColor = 'tomato';
         vanishingLine3Draw.strokeWidth = 1
         //vanishingLine3Draw.dashArray = [10, 12];
-        vanishingLine3Draw.dashArray = []
+        //vanishingLine3Draw.dashArray = []
         
         vanishingLabel.point = mousePoint
         vanishingLabel.rotation = axisLabel.rotation
@@ -354,7 +363,11 @@ function onMouseDrag(event)
     }
     else if (addSegment)
     {
-        newSegmentEndPoint = mousePoint
+        // if a line segment is being added, try to snap to nearby
+        // line segment
+        var segmentPoint = FindNearbyLineSegmentPoint(mousePoint, 10);
+
+        newSegmentEndPoint = segmentPoint
         segments[segments.length - 1].segments[0].point = newSegmentStartPoint;
         segments[segments.length - 1].segments[1].point = newSegmentEndPoint;
     }
@@ -406,7 +419,7 @@ function onMouseUp(event)
         
         axisLine3Draw.strokeColor = 'tomato';
         axisLine3Draw.strokeWidth = 1
-        axisLine3Draw.dashArray = [1];
+        axisLine3Draw.dashArray = [];
         
         axisLabel.point = (axisEndPoint + axisStartPoint) / 2.0
         axisLabel.rotation = (axisEndPoint - axisStartPoint).angle
@@ -441,7 +454,7 @@ function onMouseUp(event)
         
         vanishingLine3Draw.strokeColor = 'tomato';
         vanishingLine3Draw.strokeWidth = 1
-        vanishingLine3Draw.dashArray = [1];
+        //vanishingLine3Draw.dashArray = [1];
 
         vanishingLabel.point = mousePoint
         vanishingLabel.rotation = axisLabel.rotation
@@ -494,15 +507,19 @@ function onMouseUp(event)
     }
     else if (addSegment) 
     {
-        newSegmentEndPoint = mousePoint
+        // if a line segment is being added, try to snap to nearby
+        // line segment
+        var segmentPoint = FindNearbyLineSegmentPoint(mousePoint, 10);
+
+        newSegmentEndPoint = segmentPoint
         segments[segments.length - 1].segments[1].point = newSegmentEndPoint;
         
         var p1 = ProjectPoint(newSegmentStartPoint)
         var p2 = ProjectPoint(newSegmentEndPoint)
         var projectionSegment3Draw = new Path.Line(new Point(p1[0] / p1[2], p1[1] / p1[2]), new Point(p2[0] / p2[2], p2[1] / p2[2]))
-        projectionSegment3Draw.strokeColor = 'purple';
+        projectionSegment3Draw.strokeColor = SEGMENT_COLOR;
         projectionSegment3Draw.dashArray = [5, 3];
-        projectionSegment3Draw.strokeWidth = 2
+        projectionSegment3Draw.strokeWidth = 1
         projectionSegment3Draw.strokeCap = 'round'
         projectionSegments.push(projectionSegment3Draw)
         
@@ -537,7 +554,7 @@ function CreateLabel(line3, isProjection)
         var lineLabel = new PointText({
 			point: edge[0] * 0.7 + edge[1] * 0.3,
 			content: "",
-			fillColor: 'purple',
+			fillColor: 'black',
 			justification: 'center'
         });
         //console.log("edges: " + edge)
@@ -690,7 +707,8 @@ function ParallelToLine3AndContainsPointHom(line3, pointHom)
 {
     if (Math.abs(line3[0]) > Math.abs(line3[1]))
     {
-        if (Math.abs(pointHom[0] + pointHom[1] * line3[1] / line3[0]) < EPSILON) {
+        if (Math.abs(pointHom[0] + pointHom[1] * line3[1] / line3[0]) < EPSILON)
+        {
             //console.log("parallel problem")
         }
         var v1 = -pointHom[2] / (pointHom[0] + pointHom[1] * line3[1] / line3[0])
@@ -1046,5 +1064,29 @@ function SetTopLeftText(text, visible)
     {
         helpRect.bounds.set(-10, -10, 10, 10);
     }
+}
 
+//-----------------------------------------------------------------------------
+// Desc:    Find a segment endpoint close to a given point
+//
+// Params:
+//          mousePoint      [Point] search point
+//          tolerance       [float] max distance from mouse point
+//
+// Ret:     if point is found, return new point, else return input point
+//-----------------------------------------------------------------------------
+function FindNearbyLineSegmentPoint(mousePoint, tolerance)
+{
+    for (i = 0; i < segments.length; i++)
+    {
+        if (PointDistance(segments[i].segments[0].point, mousePoint) < tolerance)
+        {
+            return segments[i].segments[0].point;
+        }
+        if (PointDistance(segments[i].segments[1].point, mousePoint) < tolerance)
+        {
+            return segments[i].segments[1].point;
+        }
+    }
+    return mousePoint;
 }
