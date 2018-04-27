@@ -15,10 +15,14 @@
 //var curvedPath = new Path.Arc(from, through, to);
 //curvedPath.strokeColor = 'black';
 
+console.log("0");
+
 var EPSILON = 0.00001;
 var PIXELS_PER_SQUARE = 30;
 var GRID_OPACITY = 0.4
 var SEGMENT_COLOR = 'purple'
+var CENTER_POINT_ID = -2
+var NOT_DEFINED = -1
 
 // state machine
 var setupAxis = true;
@@ -27,9 +31,9 @@ var setupVanishing = false;
 var addLine = false;
 var addSegment = false;
 var movePoint = false;
-var movingPoint = -1;
+var movingPoint = NOT_DEFINED;
 var moveLine = false;
-var movingLine = -1;
+var movingLine = NOT_DEFINED;
 var cloneLine = false;
 
 var axisStartPoint = new Point(0, 0);
@@ -49,7 +53,7 @@ console.log(h);
 // draw grid
 var gridLines = [];
 
-DrawGrid();
+GenerateGrid();
 var gridEnabled = false
 var snapToGridEnabled = false
 ShowGrid(gridEnabled);
@@ -102,7 +106,7 @@ var helpLabel = new PointText({
     opacity: 1.0
 });
 
-var helpText = "Keys:\n\nL    draw line\nM    move point\nP    move line\nG    draw grid, snap to grid"
+var helpText = "Keys:\n\nL    draw line\nS    draw line segment\nM    move point\nP    move line\nG    draw grid, snap to grid"
 helpText += "\nC    clone line"
 var showHelp = false
 
@@ -249,6 +253,14 @@ function onMouseDown(event)
                 break;
             }
         }
+        if (movingPoint == -1)
+        {
+            if (PointDistance(centerPointDraw.position, event.point) < 5)
+            {
+                centerPointDraw.fillColor = 'lightblue'
+                movingPoint = CENTER_POINT_ID;
+            }
+        }
     }
     else if (moveLine)
     {
@@ -371,12 +383,26 @@ function onMouseDrag(event)
         segments[segments.length - 1].segments[0].point = newSegmentStartPoint;
         segments[segments.length - 1].segments[1].point = newSegmentEndPoint;
     }
-    else if (movePoint && movingPoint != -1) 
+    else if (movePoint && (movingPoint != -1)) 
     {
-        var pointHom = ClosestPointHomOnLine3(vanishingLine3, mousePoint)
-        vanishingPoints[movingPoint].position.x = pointHom[0] / pointHom[2]
-        vanishingPoints[movingPoint].position.y = pointHom[1] / pointHom[2]
+        if (movingPoint >= 0)
+        {
+            var pointHom = ClosestPointHomOnLine3(vanishingLine3, mousePoint)
+            vanishingPoints[movingPoint].position.x = pointHom[0] / pointHom[2]
+            vanishingPoints[movingPoint].position.y = pointHom[1] / pointHom[2] 
+        }
+        else if (movingPoint == CENTER_POINT_ID)
+        {
+            centerPointDraw.position = mousePoint
+            centerPointHom[0] = mousePoint.x
+            centerPointHom[1] = mousePoint.y
+            centerPointHom[2] = 1
+
+            centerLabel.point = centerPointDraw.position + new Point(0, -7)
+        }
+        
         ComputeLinesFromPoints()
+        ComputeSegmentProjections()
         RefreshLineLabels()
     }
     else if (moveLine && movingLine != -1)
@@ -435,7 +461,8 @@ function onMouseUp(event)
     {
         centerPointHom[0] = mousePoint.x
         centerPointHom[1] = mousePoint.y
-        
+        centerPointHom[2] = 1
+
         centerPointDraw.position.x = mousePoint.x
         centerPointDraw.position.y = mousePoint.y
         
@@ -525,15 +552,28 @@ function onMouseUp(event)
         
         addSegment = false
     }
-    else if (movePoint && movingPoint != -1)
+    else if (movePoint && (movingPoint != -1))
     {
-        var pointHom = ClosestPointHomOnLine3(vanishingLine3, mousePoint)
-        vanishingPoints[movingPoint].position.x = pointHom[0] / pointHom[2]
-        vanishingPoints[movingPoint].position.y = pointHom[1] / pointHom[2]
+        if (movingPoint >= 0)
+        {
+            var pointHom = ClosestPointHomOnLine3(vanishingLine3, mousePoint)
+            vanishingPoints[movingPoint].position.x = pointHom[0] / pointHom[2]
+            vanishingPoints[movingPoint].position.y = pointHom[1] / pointHom[2]
+            vanishingPoints[movingPoint].fillColor = 'tomato'
+        }
+        else if (movingPoint == CENTER_POINT_ID)
+        {
+            centerPointDraw.position = mousePoint
+            centerPointHom[0] = mousePoint.x
+            centerPointHom[1] = mousePoint.y
+            centerPointHom[2] = 1
+            centerPointDraw.fillColor = 'tomato'
+
+            centerLabel.point = centerPointDraw.position + new Point(0, -7)
+        }
         ComputeLinesFromPoints()
+        ComputeSegmentProjections()
         RefreshLineLabels()
-        
-        vanishingPoints[movingPoint].fillColor = 'tomato'
         
         movingPoint = -1
         movePoint = false
@@ -902,6 +942,21 @@ function ComputePointsFromLines()
     }
 }
 
+function ComputeSegmentProjections()
+{
+    for (i = 0; i < segments.length; i++)
+    {
+        var m1 = segments[i].segments[0].point
+        var m2 = segments[i].segments[1].point
+        
+        var p1 = ProjectPoint(m1)
+        var p2 = ProjectPoint(m2)
+
+        projectionSegments[i].segments[0].point = p1
+        projectionSegments[i].segments[1].point = p2
+    }
+}
+
 function RefreshLineLabels()
 {
     for (i = 0; i < lineLabels.length; i++)
@@ -986,7 +1041,10 @@ function PixelToGridLine3(lp)
     }
 }
 
-function DrawGrid()
+//-----------------------------------------------------------------------------
+// Desc:    Generate square grid
+//-----------------------------------------------------------------------------
+function GenerateGrid()
 {
     var squareCountW = w / PIXELS_PER_SQUARE;
     for (xs = -Math.floor(squareCountW / 2) - 1; xs < squareCountW / 2 + 1; xs++)
@@ -998,13 +1056,15 @@ function DrawGrid()
             //gridLine.strokeColor = 'blue';    
             gridLine.strokeColor = 'powderblue';    
             gridLine.opacity = 1.0
+            gridLine.strokeWidth = 1.0
         }
         else
         {
             gridLine.opacity = GRID_OPACITY
             gridLine.strokeColor = 'powderblue';    
+            gridLine.strokeWidth = 1.0;
         }
-        gridLine.strokeWidth = 1.0;
+        
         gridLines.push(gridLine);
     }
     var squareCountH = h / PIXELS_PER_SQUARE;
@@ -1016,14 +1076,16 @@ function DrawGrid()
         {
             //gridLine.strokeColor = 'blue';    
             gridLine.strokeColor = 'powderblue';    
-            gridLine.opacity = 1.0
+            gridLine.opacity = 1.0;
+            gridLine.strokeWidth = 1.0;
         }
         else
         {
             gridLine.opacity = GRID_OPACITY
             gridLine.strokeColor = 'powderblue';    
+            gridLine.strokeWidth = 1.0;
         }
-        gridLine.strokeWidth = 1.0;
+        
         gridLines.push(gridLine);
     }
 }
